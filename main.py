@@ -2,7 +2,7 @@ import json
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, EmailStr, Field
 from pydantic_settings import BaseSettings
@@ -11,13 +11,12 @@ from sqlalchemy.ext.asyncio import AsyncEngine, create_async_engine
 
 APP_NAME = "VortexAI API"
 
-
 # ======================
 # Settings
 # ======================
 class Settings(BaseSettings):
     database_url: str = Field(..., alias="DATABASE_URL")
-    admin_email: str = Field(..., alias="ADMIN_EMAIL")
+    admin_email: str = Field("admin@example.com", alias="ADMIN_EMAIL")
 
     class Config:
         populate_by_name = True
@@ -25,6 +24,7 @@ class Settings(BaseSettings):
 
 settings = Settings()
 
+# Fix postgres URL for async
 _db_url = settings.database_url
 if _db_url.startswith("postgres://"):
     _db_url = _db_url.replace("postgres://", "postgresql+asyncpg://", 1)
@@ -35,18 +35,16 @@ engine: AsyncEngine = create_async_engine(_db_url, pool_pre_ping=True)
 
 app = FastAPI(title=APP_NAME, version="1.0.0")
 
-
 # ======================
 # CORS (IMPORTANT)
 # ======================
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=["*"],   # change later to your domain if you want
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
 
 # ======================
 # Models
@@ -108,52 +106,58 @@ async def health():
 
 @app.post("/webhooks/seller")
 async def seller_webhook(payload: SellerSubmission):
-    await db_exec(
-        """
-        INSERT INTO sellers
-        (name, email, phone, country, region, city, asset_type, ask_price, currency, description, images, source_url)
-        VALUES
-        (:name, :email, :phone, :country, :region, :city, :asset_type, :ask_price, :currency, :description, :images::jsonb, :source_url)
-        """,
-        {
-            "name": payload.name,
-            "email": str(payload.email),
-            "phone": payload.phone,
-            "country": payload.country,
-            "region": payload.region,
-            "city": payload.city,
-            "asset_type": payload.asset_type,
-            "ask_price": payload.price,
-            "currency": payload.currency,
-            "description": payload.description,
-            "images": _json(payload.images),
-            "source_url": payload.source_url,
-        },
-    )
+    try:
+        await db_exec(
+            """
+            INSERT INTO sellers
+            (name, email, phone, country, region, city, asset_type, ask_price, currency, description, images, source_url)
+            VALUES
+            (:name, :email, :phone, :country, :region, :city, :asset_type, :ask_price, :currency, :description, :images::jsonb, :source_url)
+            """,
+            {
+                "name": payload.name,
+                "email": str(payload.email),
+                "phone": payload.phone,
+                "country": payload.country,
+                "region": payload.region,
+                "city": payload.city,
+                "asset_type": payload.asset_type,
+                "ask_price": payload.price,
+                "currency": payload.currency,
+                "description": payload.description,
+                "images": _json(payload.images),
+                "source_url": payload.source_url,
+            },
+        )
+    except Exception as e:
+        raise HTTPException(500, f"Database error: {e}")
 
     return {"ok": True}
 
 
 @app.post("/webhooks/buyer")
 async def buyer_webhook(payload: BuyerRegistration):
-    await db_exec(
-        """
-        INSERT INTO buyers
-        (name, email, phone, countries, regions, categories, budget_min, budget_max, notes)
-        VALUES
-        (:name, :email, :phone, :countries::jsonb, :regions::jsonb, :categories::jsonb, :budget_min, :budget_max, :notes)
-        """,
-        {
-            "name": payload.name,
-            "email": str(payload.email),
-            "phone": payload.phone,
-            "countries": _json(payload.countries),
-            "regions": _json(payload.regions),
-            "categories": _json(payload.categories),
-            "budget_min": payload.budget_min,
-            "budget_max": payload.budget_max,
-            "notes": payload.notes,
-        },
-    )
+    try:
+        await db_exec(
+            """
+            INSERT INTO buyers
+            (name, email, phone, countries, regions, categories, budget_min, budget_max, notes)
+            VALUES
+            (:name, :email, :phone, :countries::jsonb, :regions::jsonb, :categories::jsonb, :budget_min, :budget_max, :notes)
+            """,
+            {
+                "name": payload.name,
+                "email": str(payload.email),
+                "phone": payload.phone,
+                "countries": _json(payload.countries),
+                "regions": _json(payload.regions),
+                "categories": _json(payload.categories),
+                "budget_min": payload.budget_min,
+                "budget_max": payload.budget_max,
+                "notes": payload.notes,
+            },
+        )
+    except Exception as e:
+        raise HTTPException(500, f"Database error: {e}")
 
     return {"ok": True}
