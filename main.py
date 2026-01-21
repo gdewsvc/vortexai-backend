@@ -35,6 +35,7 @@ engine: AsyncEngine = create_async_engine(_db_url, pool_pre_ping=True)
 
 app = FastAPI(title=APP_NAME, version="1.0.0")
 
+
 # ======================
 # CORS (IMPORTANT)
 # ======================
@@ -45,6 +46,7 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
 
 # ======================
 # Models
@@ -97,16 +99,21 @@ async def db_exec(query: str, params: Dict[str, Any]) -> None:
 # ======================
 @app.get("/health")
 async def health():
-    return {"ok": True, "app": APP_NAME, "time": now_utc().isoformat()}
+    return {
+        "ok": True,
+        "app": APP_NAME,
+        "time": now_utc().isoformat(),
+    }
 
 
 @app.post("/webhooks/seller")
 async def seller_webhook(payload: SellerSubmission):
-
     await db_exec(
         """
-        insert into sellers(name, email, phone, country, region, city, asset_type, ask_price, currency, description, images, source_url)
-        values(:name,:email,:phone,:country,:region,:city,:asset_type,:ask_price,:currency,:description,:images::jsonb,:source_url)
+        INSERT INTO sellers
+        (name, email, phone, country, region, city, asset_type, ask_price, currency, description, images, source_url)
+        VALUES
+        (:name, :email, :phone, :country, :region, :city, :asset_type, :ask_price, :currency, :description, :images::jsonb, :source_url)
         """,
         {
             "name": payload.name,
@@ -129,11 +136,12 @@ async def seller_webhook(payload: SellerSubmission):
 
 @app.post("/webhooks/buyer")
 async def buyer_webhook(payload: BuyerRegistration):
-
     await db_exec(
         """
-        insert into buyers(name, email, phone, countries, regions, categories, budget_min, budget_max, notes)
-        values(:name,:email,:phone,:countries::jsonb,:regions::jsonb,:categories::jsonb,:budget_min,:budget_max,:notes)
+        INSERT INTO buyers
+        (name, email, phone, countries, regions, categories, budget_min, budget_max, notes)
+        VALUES
+        (:name, :email, :phone, :countries::jsonb, :regions::jsonb, :categories::jsonb, :budget_min, :budget_max, :notes)
         """,
         {
             "name": payload.name,
