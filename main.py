@@ -1,18 +1,13 @@
 import json
 from datetime import datetime, timezone
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, EmailStr, Field
 from pydantic_settings import BaseSettings
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncEngine, create_async_engine
-
-try:
-    from openai import OpenAI
-except Exception:
-    OpenAI = None
 
 APP_NAME = "VortexAI API"
 
@@ -22,7 +17,6 @@ APP_NAME = "VortexAI API"
 # ======================
 class Settings(BaseSettings):
     database_url: str = Field(..., alias="DATABASE_URL")
-    openai_api_key: Optional[str] = Field(None, alias="OPENAI_API_KEY")
     admin_email: str = Field(..., alias="ADMIN_EMAIL")
 
     class Config:
@@ -39,12 +33,10 @@ elif _db_url.startswith("postgresql://"):
 
 engine: AsyncEngine = create_async_engine(_db_url, pool_pre_ping=True)
 
-client_openai = OpenAI(api_key=settings.openai_api_key) if (OpenAI and settings.openai_api_key) else None
-
 app = FastAPI(title=APP_NAME, version="1.0.0")
 
 # ======================
-# CORS FIX (IMPORTANT)
+# CORS (IMPORTANT)
 # ======================
 app.add_middleware(
     CORSMiddleware,
