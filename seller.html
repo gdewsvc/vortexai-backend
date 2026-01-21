@@ -1,1 +1,60 @@
-<html><body><h1>Seller Form</h1></body></html>
+<!DOCTYPE html>
+<html>
+<head>
+<title>Seller Form</title>
+<style>
+body{font-family:Arial;background:#f3f4f6}
+.box{max-width:500px;margin:40px auto;background:white;padding:25px;border-radius:8px}
+input,select,textarea,button{width:100%;padding:10px;margin:6px 0}
+button{background:#16a34a;color:white;border:none}
+</style>
+</head>
+<body>
+
+<div class="box">
+<h2>Seller Submission</h2>
+
+<input id="name" placeholder="Name">
+<input id="email" placeholder="Email">
+<input id="phone" placeholder="Phone">
+<input id="country" placeholder="Country">
+<input id="asset" placeholder="Asset Type">
+<input id="price" placeholder="Price">
+
+<textarea id="desc" placeholder="Description"></textarea>
+
+<button onclick="send()">Submit</button>
+<p id="msg"></p>
+</div>
+
+<script>
+async function send(){
+  const data={
+    name:name.value,
+    email:email.value,
+    phone:phone.value,
+    country:country.value,
+    asset_type:asset.value,
+    price:price.value,
+    description:desc.value,
+    images:[],
+    source_url:null
+  };
+
+  try{
+    const r=await fetch("https://vortexai-backend-production.up.railway.app/webhooks/seller",{
+      method:"POST",
+      headers:{"Content-Type":"application/json"},
+      body:JSON.stringify(data)
+    });
+
+    const j=await r.json();
+    msg.innerText="✅ Submitted successfully!";
+  }catch(e){
+    msg.innerText="❌ Failed to submit";
+  }
+}
+</script>
+
+</body>
+</html>
