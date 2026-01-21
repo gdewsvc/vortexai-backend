@@ -1,1 +1,71 @@
-<html><body><h1>Buyer Form</h1></body></html>
+<!DOCTYPE html>
+<html>
+<head>
+<title>Buyer Form</title>
+<style>
+body{font-family:Arial;background:#f3f4f6}
+.box{max-width:500px;margin:40px auto;background:white;padding:25px;border-radius:8px}
+input,select,textarea,button{width:100%;padding:10px;margin:6px 0}
+button{background:#2563eb;color:white;border:none}
+</style>
+</head>
+<body>
+
+<div class="box">
+<h2>Buyer Registration</h2>
+
+<input id="name" placeholder="Name">
+<input id="email" placeholder="Email">
+<input id="phone" placeholder="Phone">
+<input id="country" placeholder="Country">
+<input id="region" placeholder="Region">
+
+<select id="category">
+<option>Real Estate</option>
+<option>Cars</option>
+<option>Equipment</option>
+<option>Luxury</option>
+<option>Wholesale</option>
+<option>Businesses</option>
+</select>
+
+<input id="min" placeholder="Min Budget">
+<input id="max" placeholder="Max Budget">
+
+<textarea id="notes" placeholder="Notes"></textarea>
+
+<button onclick="send()">Submit</button>
+<p id="msg"></p>
+</div>
+
+<script>
+async function send(){
+  const data={
+    name:name.value,
+    email:email.value,
+    phone:phone.value,
+    countries:[country.value],
+    regions:[region.value],
+    categories:[category.value],
+    budget_min:min.value,
+    budget_max:max.value,
+    notes:notes.value
+  };
+
+  try{
+    const r=await fetch("https://vortexai-backend-production.up.railway.app/webhooks/buyer",{
+      method:"POST",
+      headers:{"Content-Type":"application/json"},
+      body:JSON.stringify(data)
+    });
+
+    const j=await r.json();
+    msg.innerText="✅ Submitted successfully!";
+  }catch(e){
+    msg.innerText="❌ Failed to submit";
+  }
+}
+</script>
+
+</body>
+</html>
