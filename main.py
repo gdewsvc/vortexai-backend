@@ -19,7 +19,6 @@ APP_VERSION = "1.0.0"
 class Settings(BaseSettings):
     database_url: str = Field(..., alias="DATABASE_URL")
     admin_email: EmailStr = Field(..., alias="ADMIN_EMAIL")
-    frontend_origins: Optional[str] = Field("", alias="FRONTEND_URL")
 
     class Config:
         populate_by_name = True
@@ -48,12 +47,10 @@ engine: AsyncEngine = create_async_engine(_db_url, pool_pre_ping=True)
 
 app = FastAPI(title=APP_NAME, version=APP_VERSION)
 
-raw_origins = settings.frontend_origins or "*"
-allow_origins = ["*"] if raw_origins.strip() in ("", "*") else [o.strip() for o in raw_origins.split(",")]
-
+# ✅ CORS for Netlify frontend
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=allow_origins,
+    allow_origins=["https://vortexai-2026.netlify.app"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -156,11 +153,7 @@ async def admin_stats(x_admin_email: Optional[str] = Header(None, alias="X-Admin
 @app.post("/webhooks/sms")
 async def sms_webhook(request: Request):
     form = await request.form()
-
     from_number = form.get("From")
-    to_number = form.get("To")
     body = form.get("Body")
-
     print("📩 SMS received:", from_number, "→", body)
-
     return {"ok": True}
