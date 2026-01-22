@@ -1,72 +1,98 @@
-<!DOCTYPE html>
+<<!DOCTYPE html>
 <html>
 <head>
-  <title>Buyer Form</title>
+  <title>Buyer Registration</title>
+  <meta charset="utf-8" />
   <style>
-    body{font-family:Arial;background:#f3f4f6}
-    .box{max-width:500px;margin:40px auto;background:white;padding:25px;border-radius:8px}
-    input,select,textarea,button{width:100%;padding:10px;margin:6px 0}
-    button{background:#2563eb;color:white;border:none;cursor:pointer}
+    body { font-family: Arial; background:#f3f4f6; }
+    .box { max-width:500px; margin:40px auto; background:white; padding:25px; border-radius:8px; }
+    input, select, textarea, button { width:100%; padding:10px; margin:6px 0; box-sizing:border-box; }
+    button { background:#2563eb; color:white; border:none; cursor:pointer; }
+    button[disabled] { opacity:0.6; cursor:not-allowed; }
+    #msg { margin-top:10px; }
   </style>
 </head>
 <body>
+
 <div class="box">
   <h2>Buyer Registration</h2>
 
-  <input id="name" placeholder="Name">
-  <input id="email" placeholder="Email">
+  <input id="name" placeholder="Name" required>
+  <input id="email" placeholder="Email" required>
   <input id="phone" placeholder="Phone">
-  <input id="country" placeholder="Country">
-  <input id="region" placeholder="Region">
 
-  <select id="category">
-    <option>Real Estate</option>
-    <option>Cars</option>
-    <option>Equipment</option>
-    <option>Luxury</option>
-    <option>Wholesale</option>
-    <option>Businesses</option>
-  </select>
+  <input id="countries" placeholder="Countries (comma separated)">
+  <input id="regions" placeholder="Regions (comma separated)">
+  <input id="categories" placeholder="Categories (comma separated)">
 
-  <input id="min" placeholder="Min Budget">
-  <input id="max" placeholder="Max Budget">
+  <input id="budget_min" placeholder="Min Budget">
+  <input id="budget_max" placeholder="Max Budget">
+
   <textarea id="notes" placeholder="Notes"></textarea>
 
-  <button onclick="send()">Submit</button>
+  <button id="submitBtn">Submit</button>
   <p id="msg"></p>
 </div>
 
 <script>
-async function send() {
-  const data = {
-    name: name.value,
-    email: email.value,
-    phone: phone.value,
-    country: country.value,
-    region: region.value,
-    category: category.value,
-    min_budget: min.value,
-    max_budget: max.value,
-    notes: notes.value
+const BUYER_ENDPOINT = "https://vortexai-backend-production.up.railway.app/webhooks/buyer";
+const btn = document.getElementById('submitBtn');
+const msg = document.getElementById('msg');
+
+function collectBuyerData() {
+  return {
+    name: document.getElementById("name").value,
+    email: document.getElementById("email").value,
+    phone: document.getElementById("phone").value,
+    countries: (document.getElementById("countries").value || "").split(",").map(v => v.trim()).filter(Boolean),
+    regions: (document.getElementById("regions").value || "").split(",").map(v => v.trim()).filter(Boolean),
+    categories: (document.getElementById("categories").value || "").split(",").map(v => v.trim()).filter(Boolean),
+    budget_min: document.getElementById("budget_min").value || null,
+    budget_max: document.getElementById("budget_max").value || null,
+    notes: document.getElementById("notes").value || null
   };
+}
+
+async function submitBuyer() {
+  const name = document.getElementById("name").value.trim();
+  const email = document.getElementById("email").value.trim();
+  if (!name || !email) {
+    msg.innerText = "Please fill required fields: Name and Email.";
+    msg.style.color = "red";
+    return;
+  }
+
+  const data = collectBuyerData();
+
+  btn.disabled = true;
+  msg.innerText = "Submitting...";
+  msg.style.color = "black";
 
   try {
-    const res = await fetch("https://vortexai-backend-production.up.railway.app/api/buyer", {
+    const res = await fetch(BUYER_ENDPOINT, {
       method: "POST",
-      headers: {"Content-Type":"application/json"},
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify(data)
     });
 
-    if(!res.ok) throw new Error("Server error");
+    if (!res.ok) {
+      const text = await res.text().catch(() => "");
+      throw new Error(`Server responded ${res.status} ${res.statusText} ${text}`);
+    }
 
-    msg.innerText = "✅ Submitted successfully!";
+    msg.innerText = "✅ Buyer submitted successfully!";
     msg.style.color = "green";
-
-  } catch(err) {
-    msg.innerText = "❌ Submit failed: " + err.message;
+  } catch (err) {
+    console.error(err);
+    msg.innerText = "❌ Submit failed — see console for details.";
     msg.style.color = "red";
+  } finally {
+    btn.disabled = false;
   }
 }
+
+btn.addEventListener('click', submitBuyer);
 </script>
+
 </body>
 </html>
