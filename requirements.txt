@@ -1,9 +1,5 @@
 fastapi
 uvicorn[standard]
 sqlalchemy
-asyncpg
-pydantic
-pydantic-settings
-email-validator
+psycopg2-binary
 python-multipart
-httpx
